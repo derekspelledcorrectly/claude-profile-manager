@@ -1,0 +1,126 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
+
+# Check for required dependencies
+if ! command -v jq >/dev/null 2>&1; then
+    echo "Error: jq is required but not installed." >&2
+    echo "" >&2
+    echo "To install jq:" >&2
+    echo "  brew install jq" >&2
+    echo "" >&2
+    echo "Or reinstall claude-profile-manager to get dependencies:" >&2
+    echo "  brew uninstall claude-profile-manager" >&2
+    echo "  brew install claude-profile-manager" >&2
+    exit 1
+fi
+
+# shellcheck source=lib/profile-core.sh
+source "$LIB_DIR/profile-core.sh"
+
+show_help() {
+    cat << EOF
+Claude Profile Manager - Manage Claude Code CLI authentication profiles
+
+Usage: claude-profile <command> [arguments]
+
+Commands:
+    save <name> [aliases...]    Save current credentials as a named profile with optional aliases
+    s <name> [aliases...]       (alias for save)
+    
+    list                        Show all saved profiles
+    ls                          (alias for list)
+    
+    switch <name>               Switch to specified profile  
+    sw <name>                   (alias for switch)
+    <name>                      Switch to profile (default action)
+    
+    current                     Show active profile
+    cur                         (alias for current)
+    
+    delete <name>               Delete saved profile
+    del <name>                  (alias for delete)
+    rm <name>                   (alias for delete)
+    
+    alias <alias> <profile>     Add alias for existing profile
+    aliases                     List all defined aliases
+    unalias <alias>             Remove alias
+    
+    help                        Show this help message
+    -h, --help                  (aliases for help)
+
+Examples:
+    claude-profile save work
+    claude-profile save subscription sub api
+    claude-profile s personal
+    claude-profile list
+    claude-profile ls
+    claude-profile switch work
+    claude-profile sw personal
+    claude-profile work          # Switch to 'work' profile (default action)
+    claude-profile api           # Switch using alias
+    claude-profile current
+    claude-profile cur
+    claude-profile delete old-profile
+    claude-profile del old-profile
+    claude-profile alias api console
+    claude-profile aliases
+    claude-profile unalias api
+
+Authentication Methods Supported:
+    - Console API: Stored securely in macOS keychain
+    - Subscription: OAuth tokens stored securely in macOS keychain
+
+Security Features:
+    - All credentials stored in encrypted macOS keychain
+    - Profile files protected with 600 permissions
+    - Input validation prevents path traversal attacks
+    - Optional audit logging (set CLAUDE_PROFILE_LOG=true)
+
+Note: After switching profiles, restart Claude Code with Ctrl+D twice, then 'claude -c'
+EOF
+}
+
+main() {
+    local command="$1"
+    shift
+    
+    case "$command" in
+        "save"|"s")
+            save_profile "$@"
+            ;;
+        "list"|"ls")
+            list_profiles
+            ;;
+        "switch"|"sw")
+            switch_profile "$1"
+            ;;
+        "current"|"cur")
+            show_current_profile
+            ;;
+        "delete"|"del"|"rm")
+            delete_profile "$1"
+            ;;
+        "alias")
+            add_alias "$1" "$2"
+            ;;
+        "aliases")
+            list_aliases
+            ;;
+        "unalias")
+            remove_alias "$1"
+            ;;
+        "help"|"-h"|"--help"|"")
+            show_help
+            ;;
+        *)
+            # Default action: switch to profile
+            switch_profile "$command"
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

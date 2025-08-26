@@ -1,0 +1,80 @@
+# Claude local settings
+.claude/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+# Vim
+*.swp
+*.swo
+*~
+.viminfo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Shell script artifacts
+*.sh.bak
+*.bash_history
+
+# Testing/Development
+*.test
+debug.log
+
+# Archive files (shouldn't be in source)
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# Local configuration
+config.local
+*.local
+.env.local
+
+# Build artifacts (if any)
+dist/
+build/
+
+# Package manager artifacts
+node_modules/
+*.lock
+
+# IDE files
+.idea/
+*.iml
+
+# Project specific
+Formula/
+homebrew-*/
