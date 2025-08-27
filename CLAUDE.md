@@ -97,11 +97,22 @@ When switching away from a subscription profile, the tool automatically saves cu
 - **Security Note**: Tokens are not JWTs, they are proprietary JSON objects
 - **Detection**: Regex pattern `^\{.*claudeAiOauth.*\}$`
 
-### Token Health Detection
+### List Command Enhancements
+- **Current Profile Indicator**: The `➤` arrow shows which profile is currently active
+- **Unified Status Column**: Single STATUS column instead of separate STATUS/TOKEN STATUS
+- **Authentication-Specific Status**: 
+  - Console profiles: `ready` or `missing` 
+  - Subscription profiles: Token expiration details (`expires in 2d 4h`, `expires soon (30m)`, `expired 3h ago`)
 - **Real-time expiration checking**: Compares `expiresAt` with current time
-- **Enhanced list command**: Shows actual token expiration times
-- **Status formats**: `expires in 2d 4h`, `expires soon (30m)`, `expired 3h ago`
 - **Graceful handling**: Falls back to "valid" for unparseable tokens
+
+**Example List Output:**
+```
+Available profiles:
+     PROFILE             TYPE          CREATED  LAST USED  STATUS
+     console (api)       console       Aug 26   Aug 27     ready
+  ➤  subscription (sub)  subscription  Aug 27   Aug 27     expires in 0d 5h
+```
 
 ### OAuth Token Refresh (Not Currently Implemented)
 
@@ -182,7 +193,7 @@ claude-profile p
 # Check current profile
 claude-profile current
 
-# See all profiles and their health
+# See all profiles with current indicator and status
 claude-profile list
 
 # Clean up old profiles

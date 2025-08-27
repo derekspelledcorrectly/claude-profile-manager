@@ -562,7 +562,7 @@ list_profiles() {
     local table_data=""
     
     # Add header row
-    table_data="PROFILE	TYPE	CREATED	LAST USED	STATUS	TOKEN STATUS"
+    table_data=" 	PROFILE	TYPE	CREATED	LAST USED	STATUS"
     
     for profile_file in "$PROFILE_SETTINGS_DIR"/*.json; do
         if [[ -f "$profile_file" ]]; then
@@ -596,27 +596,35 @@ list_profiles() {
                 last_used_date=$(format_timestamp "$last_used_raw")
             fi
             
-            # Determine status
-            local status=""
+            # Current profile indicator
+            local indicator=" "
             if [[ "$profile_name" == "$current_profile" ]]; then
-                status="current"
+                indicator="➤"
             fi
             
-            # Check token health for subscription profiles
-            local token_status="n/a"
+            # Check status for different auth types
+            local status="n/a"
             if [[ "$auth_type" == "subscription" ]]; then
                 local token
                 token=$(keychain_get_password "$profile_name" 2>/dev/null)
                 if [[ -n "$token" ]]; then
-                    token_status=$(check_token_health "$token")
+                    status=$(check_token_health "$token")
                 else
-                    token_status="missing"
+                    status="missing"
+                fi
+            elif [[ "$auth_type" == "console" ]]; then
+                local api_key
+                api_key=$(keychain_get_password "$profile_name" 2>/dev/null)
+                if [[ -n "$api_key" ]]; then
+                    status="ready"
+                else
+                    status="missing"
                 fi
             fi
             
             # Add row to table data
             table_data="$table_data
-$profile_display	$auth_type	$created_date	$last_used_date	$status	$token_status"
+$indicator	$profile_display	$auth_type	$created_date	$last_used_date	$status"
         fi
     done
     

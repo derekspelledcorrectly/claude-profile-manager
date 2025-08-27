@@ -75,6 +75,18 @@ claude-profile list
 claude-profile ls
 ```
 
+**Example Output:**
+```
+Available profiles:
+     PROFILE             TYPE          CREATED  LAST USED  STATUS
+     console (api)       console       Aug 26   Aug 27     ready
+  ➤  subscription (sub)  subscription  Aug 27   Aug 27     expires in 0d 5h
+```
+
+The `➤` arrow indicates which profile is currently active. Status shows:
+- **Console profiles**: `ready` (when API key available) or `missing`
+- **Subscription profiles**: Token expiration details like `expires in 2d 4h` or `expired 3h ago`
+
 ### Switch to Profile
 
 ```bash

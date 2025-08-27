@@ -56,12 +56,15 @@
 
 ### Manual Testing Checklist
 - [ ] `claude-profile save <name>` works with current credentials
-- [ ] `claude-profile list` shows correct information  
+- [ ] `claude-profile list` shows correct information with current profile indicator (➤) and appropriate status messages  
 - [ ] `claude-profile switch <name>` switches profiles correctly
 - [ ] `claude-profile current` shows active profile
 - [ ] `claude-profile delete <name>` removes profiles
 - [ ] Alias commands work (`ls`, `sw`, `cur`, etc.)
 - [ ] Token health detection works for subscription profiles
+- [ ] Current profile indicator (➤ arrow) appears next to active profile
+- [ ] Console profiles show "ready" status when API key exists
+- [ ] Subscription profiles show proper token expiration information
 - [ ] Auto-save prompts appear when switching away from subscription profiles
 - [ ] Error handling works gracefully
 - [ ] Help text is accurate and complete
