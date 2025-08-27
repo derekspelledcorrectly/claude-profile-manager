@@ -145,6 +145,38 @@ The current auto-save approach was chosen because it's simpler and avoids issues
 - **Profile Isolation**: Each profile maintains separate keychain entries
 - **Security Model**: Inherits macOS keychain security protections
 
+## Fork Monitoring
+
+A companion tool `fork-monitor` helps you stay informed about changes in repositories you've forked, making it easier to decide when and how to sync your forks with upstream changes.
+
+### Fork Monitor Commands
+
+```bash
+# Quick check for updates across all your forks
+fork-monitor
+
+# List all your forked repositories
+fork-monitor list
+
+# Detailed summary showing recent commits
+fork-monitor summary
+```
+
+### Fork Monitor Features
+
+- **Automatic Fork Discovery**: Finds all your forked repositories via GitHub CLI
+- **Upstream Change Detection**: Tracks new commits since your last check
+- **State Persistence**: Remembers what you've already seen via `~/.fork-monitor-state.json`
+- **Cross-Platform**: Works on both macOS and Windows (Git Bash)
+- **Integration**: Uses same toolchain as claude-profile (bash, jq, gh)
+
+This helps with fork maintenance workflows:
+
+1. **Stay Informed**: Regular checks show when upstream repositories get updates
+2. **Evaluate Changes**: Review commit messages to understand new features/fixes  
+3. **Plan Updates**: Decide which changes to implement in your fork
+4. **Maintain Parity**: Keep your fork current with important upstream improvements
+
 ## Usage Examples
 
 ### Basic Workflow

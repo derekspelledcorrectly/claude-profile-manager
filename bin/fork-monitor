@@ -1,0 +1,339 @@
+#!/bin/bash
+
+# Fork Monitor - Track upstream changes in forked repositories
+# Part of Claude Profile Manager toolchain
+# Compatible with macOS and Windows (Git Bash)
+# Dependencies: bash, jq, gh (GitHub CLI)
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly STATE_FILE="${HOME}/.fork-monitor-state.json"
+readonly MAX_COMMITS=10
+readonly DATE_FORMAT="+%Y-%m-%d %H:%M:%S"
+
+# Check for required dependencies
+check_dependencies() {
+    local missing_deps=()
+    
+    for cmd in jq gh; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_deps+=("$cmd")
+        fi
+    done
+    
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        echo "Error: Missing required dependencies: ${missing_deps[*]}" >&2
+        echo "" >&2
+        echo "To install missing dependencies:" >&2
+        for dep in "${missing_deps[@]}"; do
+            case $dep in
+                jq) echo "  brew install jq" >&2 ;;
+                gh) echo "  brew install gh" >&2 ;;
+            esac
+        done
+        echo "" >&2
+        exit 1
+    fi
+    
+    # Check GitHub CLI authentication
+    if ! gh auth status >/dev/null 2>&1; then
+        echo "Error: GitHub CLI not authenticated" >&2
+        echo "Please run: gh auth login" >&2
+        exit 1
+    fi
+}
+
+# Colors for output (compatible with both macOS and Windows)
+if [[ -t 1 ]] && command -v tput >/dev/null 2>&1; then
+    readonly RED="$(tput setaf 1)"
+    readonly GREEN="$(tput setaf 2)"
+    readonly YELLOW="$(tput setaf 3)"
+    readonly BLUE="$(tput setaf 4)"
+    readonly MAGENTA="$(tput setaf 5)"
+    readonly CYAN="$(tput setaf 6)"
+    readonly GRAY="$(tput setaf 7)"
+    readonly BOLD="$(tput bold)"
+    readonly NC="$(tput sgr0)"
+else
+    readonly RED=""
+    readonly GREEN=""
+    readonly YELLOW=""
+    readonly BLUE=""
+    readonly MAGENTA=""
+    readonly CYAN=""
+    readonly GRAY=""
+    readonly BOLD=""
+    readonly NC=""
+fi
+
+# Logging functions following claude-profile patterns
+log_info() { echo "${BLUE}ℹ${NC} $*"; }
+log_success() { echo "${GREEN}✓${NC} $*"; }
+log_warning() { echo "${YELLOW}⚠${NC} $*"; }
+log_error() { echo "${RED}✗${NC} $*" >&2; }
+
+show_help() {
+    cat << EOF
+Fork Monitor - Track upstream changes in forked repositories
+
+Usage: fork-monitor [command] [options]
+
+Commands:
+    check       Check for new upstream commits (default)
+    list        List all your forked repositories
+    summary     Show detailed summary with commit information
+    
+Options:
+    -h, --help      Show this help message
+    -v, --verbose   Enable verbose output
+    -q, --quiet     Suppress non-essential output
+    
+Examples:
+    fork-monitor            # Quick check for updates
+    fork-monitor summary    # Detailed summary with commits
+    fork-monitor list       # List your forked repositories
+    
+State file: ~/.fork-monitor-state.json
+
+This tool helps you stay informed about changes in repositories you've forked,
+making it easier to decide when and how to sync your forks with upstream changes.
+
+Part of the Claude Profile Manager toolchain.
+EOF
+}
+
+# State management (following profile-core.sh patterns)
+get_state() {
+    if [[ -f "$STATE_FILE" ]] && jq -e '.' "$STATE_FILE" >/dev/null 2>&1; then
+        cat "$STATE_FILE"
+    else
+        echo '{"lastRun": null, "processedCommits": {}, "forkData": {}}'
+    fi
+}
+
+save_state() {
+    local state="$1"
+    echo "$state" | jq '.' > "$STATE_FILE" 2>/dev/null || {
+        log_error "Failed to save state file"
+        return 1
+    }
+}
+
+# GitHub API helpers
+get_user_forks() {
+    [[ $VERBOSE -eq 1 ]] && log_info "Retrieving forked repositories..."
+    
+    if ! gh repo list --fork --json name,owner,parent,pushedAt 2>/dev/null; then
+        log_error "Failed to retrieve fork list"
+        return 1
+    fi
+}
+
+get_upstream_commits() {
+    local upstream_repo="$1"
+    local limit="${2:-$MAX_COMMITS}"
+    
+    [[ $VERBOSE -eq 1 ]] && log_info "Getting commits from $upstream_repo"
+    
+    # Try main branch first, then master
+    for branch in main master; do
+        if gh api "repos/$upstream_repo/commits" -F "sha=$branch" \
+            --jq ".[:$limit] | .[] | {sha, message: .commit.message, date: .commit.author.date, author: .commit.author.name}" 2>/dev/null; then
+            return 0
+        fi
+    done
+    
+    # If both fail, return empty array
+    echo "[]"
+    return 1
+}
+
+format_date() {
+    local iso_date="$1"
+    # Cross-platform date formatting
+    if date --version >/dev/null 2>&1; then
+        # GNU date (Linux/Git Bash)
+        date -d "$iso_date" "$DATE_FORMAT" 2>/dev/null || echo "$iso_date"
+    else
+        # BSD date (macOS)
+        date -jf "%Y-%m-%dT%H:%M:%SZ" "${iso_date%.*}Z" "$DATE_FORMAT" 2>/dev/null || echo "$iso_date"
+    fi
+}
+
+# Main functions
+cmd_list() {
+    check_dependencies
+    
+    log_info "Your forked repositories:"
+    echo
+    
+    local forks
+    forks=$(get_user_forks)
+    
+    if [[ "$forks" == "[]" || -z "$forks" ]]; then
+        echo "No forked repositories found."
+        return 0
+    fi
+    
+    echo "$forks" | jq -r '.[] | "• \(.owner.login)/\(.name) ← \(.parent.owner.login)/\(.parent.name)"'
+    
+    local count
+    count=$(echo "$forks" | jq 'length')
+    echo
+    log_success "Found $count forked repositories"
+}
+
+analyze_fork() {
+    local fork_json="$1"
+    local state="$2"
+    
+    local fork_name upstream_name
+    fork_name=$(echo "$fork_json" | jq -r '"\(.owner.login)/\(.name)"')
+    upstream_name=$(echo "$fork_json" | jq -r '"\(.parent.owner.login)/\(.parent.name)"')
+    
+    [[ $QUIET -ne 1 ]] && echo -e "${CYAN}📍${NC} $fork_name ${GRAY}←${NC} $upstream_name"
+    
+    # Get upstream commits
+    local upstream_commits
+    upstream_commits=$(get_upstream_commits "$upstream_name" "$MAX_COMMITS")
+    
+    if [[ "$upstream_commits" == "[]" ]]; then
+        [[ $QUIET -ne 1 ]] && echo -e "   ${YELLOW}⚠ Could not retrieve commits${NC}"
+        return 0
+    fi
+    
+    # Check for new commits
+    local processed_commits
+    processed_commits=$(echo "$state" | jq -r --arg upstream "$upstream_name" '.processedCommits[$upstream] // []')
+    
+    local new_commits
+    new_commits=$(echo "$upstream_commits" | jq --argjson processed "$processed_commits" '
+        [.[] | select(.sha as $sha | $processed | index($sha) | not)]
+    ')
+    
+    local new_count
+    new_count=$(echo "$new_commits" | jq 'length')
+    
+    # Update state
+    local all_shas
+    all_shas=$(echo "$upstream_commits" | jq '[.[].sha]')
+    local updated_processed
+    updated_processed=$(echo "$processed_commits" "$all_shas" | jq -s '(.[0] + .[1]) | unique | .[-100:]')
+    
+    echo "$state" | jq --arg upstream "$upstream_name" --argjson commits "$updated_processed" '
+        .processedCommits[$upstream] = $commits
+    '
+    
+    # Display results
+    if [[ $new_count -eq 0 ]]; then
+        [[ $QUIET -ne 1 ]] && echo -e "   ${GREEN}✓ Up-to-date${NC}"
+    else
+        [[ $QUIET -ne 1 ]] && echo -e "   ${MAGENTA}↑ $new_count new commits${NC}"
+        
+        if [[ $SHOW_COMMITS -eq 1 ]]; then
+            echo "$new_commits" | jq -r '.[:3] | .[] | "\(.sha[0:8]) \(.date) \(.message | split("\n")[0] | .[0:60])"' | while IFS= read -r line; do
+                local sha date message
+                sha=$(echo "$line" | cut -d' ' -f1)
+                date=$(format_date "$(echo "$line" | cut -d' ' -f2)")
+                message=$(echo "$line" | cut -d' ' -f3-)
+                echo -e "     ${GRAY}•${NC} ${YELLOW}$sha${NC} ${GRAY}$date${NC} $message"
+            done
+            
+            if [[ $new_count -gt 3 ]]; then
+                echo -e "     ${GRAY}... and $((new_count - 3)) more commits${NC}"
+            fi
+        fi
+    fi
+    
+    echo "$new_count"
+}
+
+cmd_check() {
+    check_dependencies
+    
+    local state total_new=0 needs_attention=0
+    state=$(get_state)
+    
+    local forks
+    forks=$(get_user_forks)
+    
+    if [[ "$forks" == "[]" || -z "$forks" ]]; then
+        echo "No forked repositories found."
+        return 0
+    fi
+    
+    local total_forks
+    total_forks=$(echo "$forks" | jq 'length')
+    
+    [[ $QUIET -ne 1 ]] && log_info "Checking $total_forks forked repositories for updates..."
+    [[ $QUIET -ne 1 ]] && echo
+    
+    # Process each fork
+    while IFS= read -r fork; do
+        local new_count
+        new_count=$(analyze_fork "$fork" "$state")
+        state=$(analyze_fork "$fork" "$state" | tail -n1)  # Get updated state
+        
+        if [[ $new_count -gt 0 ]]; then
+            total_new=$((total_new + new_count))
+            needs_attention=$((needs_attention + 1))
+        fi
+    done < <(echo "$forks" | jq -c '.[]')
+    
+    # Summary
+    echo
+    if [[ $total_new -eq 0 ]]; then
+        log_success "All forks are up-to-date!"
+    else
+        log_info "Found $total_new new commits across $needs_attention repositories"
+        echo
+        echo "Run 'fork-monitor summary' to see detailed commit information."
+    fi
+    
+    # Update timestamp
+    local now
+    now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    state=$(echo "$state" | jq --arg now "$now" '.lastRun = $now')
+    save_state "$state"
+}
+
+cmd_summary() {
+    SHOW_COMMITS=1
+    cmd_check
+}
+
+# Command line parsing
+VERBOSE=0
+QUIET=0
+SHOW_COMMITS=0
+COMMAND="check"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            ;;
+        -q|--quiet)
+            QUIET=1
+            ;;
+        list|check|summary)
+            COMMAND="$1"
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# Main execution
+case $COMMAND in
+    list) cmd_list ;;
+    summary) cmd_summary ;;
+    check|*) cmd_check ;;
+esac

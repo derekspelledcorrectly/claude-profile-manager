@@ -10,6 +10,7 @@ A robust authentication profile management system for Claude Code CLI that allow
 - **Settings Preservation**: Each profile maintains its own Claude settings
 - **Command Aliases**: Short aliases for all commands (`s`, `ls`, `sw`, `cur`, `del`, `rm`)
 - **Default Action**: Switch to profile by name without explicit `switch` command
+- **Fork Monitoring**: Companion `fork-monitor` tool tracks upstream changes in your forked repositories
 
 ## ⚠️ **IMPORTANT WARNING** ⚠️
 
@@ -142,6 +143,19 @@ claude-profile current
 
 # Clean up old profiles
 claude-profile delete old-work
+```
+
+### Fork Monitoring
+
+```bash
+# Check for upstream changes in your forked repositories
+fork-monitor
+
+# List all your forked repositories
+fork-monitor list
+
+# Show detailed summary with recent commits
+fork-monitor summary
 ```
 
 ## License
