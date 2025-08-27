@@ -34,8 +34,9 @@ brew install claude-profile-manager
 ### Profile Management
 ```bash
 # Save current credentials as a profile
-claude-profile save work
-claude-profile s personal
+claude-profile save                    # Save to current profile (with confirmation if exists)
+claude-profile save work               # Save current credentials as 'work' profile  
+claude-profile s personal              # Short form
 
 # List all profiles with status
 claude-profile list
@@ -153,6 +154,12 @@ claude-profile save work
 
 # Save personal credentials (after switching Claude to personal account)  
 claude-profile save personal
+
+# Enhanced workflow: Update current profile with fresh credentials
+claude-profile switch work
+# ... do some work, Claude may refresh tokens in background ...
+claude-profile save    # Updates 'work' profile with current credentials
+# Profile 'work' already exists. Overwrite existing credentials? [y/N]: y
 
 # List all profiles with current status
 claude-profile list

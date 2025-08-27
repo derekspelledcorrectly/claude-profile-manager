@@ -180,14 +180,43 @@ resolve_profile_alias() {
     echo "$profile_name"
 }
 
+profile_exists() {
+    local profile_name="$1"
+    local profile_file
+    profile_file=$(get_profile_file "$profile_name")
+    [[ -f "$profile_file" ]]
+}
+
 save_profile() {
     local profile_name="$1"
     shift
     local aliases=("$@")
     
+    # If no profile name provided, try to use current profile
     if [[ -z "$profile_name" ]]; then
-        echo "Error: Profile name required" >&2
-        return 1
+        local current_file="$PROFILE_SETTINGS_DIR/.current"
+        if [[ -f "$current_file" ]]; then
+            profile_name=$(cat "$current_file")
+            echo "No profile name specified. Using current profile: $profile_name"
+            
+            # Check if profile already exists and prompt for confirmation
+            if profile_exists "$profile_name"; then
+                echo -n "Profile '$profile_name' already exists. Overwrite existing credentials? [y/N]: "
+                read -r -n 10 response
+                case "$response" in
+                    [Yy]|[Yy][Ee][Ss])
+                        ;;
+                    *)
+                        echo "Save cancelled."
+                        return 0
+                        ;;
+                esac
+            fi
+        else
+            echo "Error: No profile name specified and no current profile active." >&2
+            echo "Usage: claude-profile save <name> [aliases...]" >&2
+            return 1
+        fi
     fi
     
     # Validate profile name
@@ -212,7 +241,10 @@ save_profile() {
         return 1
     fi
     
-    echo "Detected authentication method: $auth_method"
+    # Only show auth method detection for explicitly named profiles (not current profile)
+    if [[ "$1" != "" ]]; then
+        echo "Detected authentication method: $auth_method"
+    fi
     
     # Save credentials to keychain
     case "$auth_method" in

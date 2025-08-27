@@ -26,8 +26,8 @@ Claude Profile Manager - Manage Claude Code CLI authentication profiles
 Usage: claude-profile <command> [arguments]
 
 Commands:
-    save <name> [aliases...]    Save current credentials as a named profile with optional aliases
-    s <name> [aliases...]       (alias for save)
+    save [name] [aliases...]    Save credentials as named profile (uses current if no name given)
+    s [name] [aliases...]       (alias for save)
     
     list                        Show all saved profiles
     ls                          (alias for list)
@@ -51,9 +51,10 @@ Commands:
     -h, --help                  (aliases for help)
 
 Examples:
-    claude-profile save work
-    claude-profile save subscription sub api
-    claude-profile s personal
+    claude-profile save                    # Save credentials for current profile
+    claude-profile save work               # Save current credentials as 'work' profile
+    claude-profile save subscription sub   # Save with alias 'sub'
+    claude-profile s personal              # Short form
     claude-profile list
     claude-profile ls
     claude-profile switch work

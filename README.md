@@ -57,8 +57,15 @@ cp claude-profile-manager/bin/claude-profile /usr/local/bin/
 ### Save Current Authentication as Profile
 
 ```bash
+# Save credentials for current profile (if you have one active)
+claude-profile save
+
+# Save current credentials as a named profile
 claude-profile save work
 claude-profile s personal
+
+# When overwriting existing profile, you'll be prompted:
+# Profile 'work' already exists. Overwrite existing credentials? [y/N]: y
 ```
 
 ### List All Profiles
