@@ -81,6 +81,11 @@ test_syntax() {
         "$PROJECT_ROOT/bin/claude-profile"
         "$PROJECT_ROOT/lib/profile-core.sh"
         "$PROJECT_ROOT/lib/keychain-utils.sh"
+        "$PROJECT_ROOT/tests/ui-functionality-test.sh"
+        "$PROJECT_ROOT/tests/list-command-integration-test.sh"
+        "$PROJECT_ROOT/tests/core-operations-test.sh"
+        "$PROJECT_ROOT/tests/error-handling-test.sh"
+        "$PROJECT_ROOT/tests/workflow-integration-test.sh"
     )
     
     for file in "${shell_files[@]}"; do
@@ -108,6 +113,36 @@ print_summary() {
     fi
 }
 
+# Run UI functionality tests if available
+run_ui_tests() {
+    echo "Running UI functionality tests..."
+    
+    if [[ -x "$PROJECT_ROOT/tests/ui-functionality-test.sh" ]]; then
+        if "$PROJECT_ROOT/tests/ui-functionality-test.sh"; then
+            print_success "UI functionality tests passed"
+        else
+            print_error "UI functionality tests failed"
+        fi
+    else
+        print_error "UI functionality test script not executable"
+    fi
+}
+
+# Run list command integration tests if available
+run_integration_tests() {
+    echo "Running list command integration tests..."
+    
+    if [[ -x "$PROJECT_ROOT/tests/list-command-integration-test.sh" ]]; then
+        if "$PROJECT_ROOT/tests/list-command-integration-test.sh"; then
+            print_success "List command integration tests passed"
+        else
+            print_error "List command integration tests failed"
+        fi
+    else
+        print_error "List command integration test script not executable"
+    fi
+}
+
 # Main execution
 main() {
     echo "Running basic tests for Claude Profile Manager..."
@@ -118,6 +153,10 @@ main() {
     test_validation
     echo
     test_syntax
+    echo
+    run_ui_tests
+    echo
+    run_integration_tests
     
     print_summary
     exit $?
