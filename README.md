@@ -13,13 +13,11 @@ A robust Claude Code authentication profile management system for macOS that all
 
 ## ⚠️ **IMPORTANT WARNING** ⚠️
 
-**This tool directly modifies Claude's authentication data stored in your macOS keychain.**
+**This tool manipulates Claude's authentication data in your macOS keychain and could break your Claude Code authentication.**
 
-- **Use at your own risk**: This tool manipulates sensitive authentication credentials
-- **Potential consequences**: Could break your existing Claude Code authentication
-- **Advanced users only**: Only use if you understand keychain management and authentication flows
-- **No warranty**: Provided "as-is" with no guarantees (see LICENSE)
-- **Backup recommended**: Consider backing up your keychain before use
+- **Potential data loss**: Theoretically could cause loss of keychain information. Back up your keychain if you're concerned.
+- **No warranty**: Provided "as-is" with no guarantees ([see LICENSE](LICENSE)).
+- **Recovery**: If authentication breaks, you can use `/logout` and `/login` commands in Claude Code to refresh your auth.
 
 ## Installation
 
