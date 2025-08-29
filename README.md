@@ -1,6 +1,6 @@
 # Claude Profile Manager
 
-A robust authentication profile management system for Claude Code CLI that allows seamless switching between different Claude authentication methods.
+A robust Claude Code authentication profile management system for macOS that allows seamless switching between different Claude authentication methods without logging out and in. This can be used, for example, to quickly switch to console API billing when you've exhausted your Claude subscription tokens, and then switch back when they reset.
 
 ## Features
 
