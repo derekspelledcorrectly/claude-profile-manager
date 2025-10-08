@@ -188,6 +188,7 @@ profile_exists() {
 }
 
 save_profile() {
+    local original_profile_name="$1"
     local profile_name="$1"
     shift
     local aliases=("$@")
@@ -225,11 +226,13 @@ save_profile() {
     fi
     
     # Validate all alias names
-    for alias in "${aliases[@]}"; do
-        if ! validate_alias_name "$alias"; then
-            return 1
-        fi
-    done
+    if [[ ${#aliases[@]} -gt 0 ]]; then
+        for alias in "${aliases[@]}"; do
+            if ! validate_alias_name "$alias"; then
+                return 1
+            fi
+        done
+    fi
     
     ensure_profile_dir
     
@@ -242,7 +245,7 @@ save_profile() {
     fi
     
     # Only show auth method detection for explicitly named profiles (not current profile)
-    if [[ "$1" != "" ]]; then
+    if [[ "$original_profile_name" != "" ]]; then
         echo "Detected authentication method: $auth_method"
     fi
     
