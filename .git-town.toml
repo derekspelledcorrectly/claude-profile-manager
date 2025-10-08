@@ -1,0 +1,23 @@
+# See https://www.git-town.com/configuration-file for details
+
+[branches]
+main = "main"
+
+[create]
+new-branch-type = "prototype"
+share-new-branches = "no"
+stash = true
+
+[ship]
+delete-tracking-branch = true
+strategy = "fast-forward"
+
+[sync]
+auto-sync = true
+feature-strategy = "rebase"
+perennial-strategy = "ff-only"
+prototype-strategy = "rebase"
+push-branches = true
+push-hook = true
+tags = true
+upstream = true
