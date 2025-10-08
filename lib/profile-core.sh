@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROFILE_SETTINGS_DIR="$HOME/.claude/profiles"
+PROFILE_SETTINGS_DIR="${PROFILE_SETTINGS_DIR:-$HOME/.claude/profiles}"
 
 # shellcheck source=lib/keychain-utils.sh
 source "$(dirname "${BASH_SOURCE[0]}")/keychain-utils.sh"
