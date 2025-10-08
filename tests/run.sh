@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Get project root
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -85,13 +85,15 @@ main() {
     echo "Setting up test environment..."
     
     # Make all test files executable
-    chmod +x "$PROJECT_ROOT/tests"/*.sh
+    chmod +x "$PROJECT_ROOT/tests/"*.sh
     print_success "Made test files executable"
     
     # Define test suites in order of execution
     local test_suites=(
-        "$PROJECT_ROOT/tests/basic-test.sh:Basic Functionality & Syntax Tests"
-        "$PROJECT_ROOT/tests/core-operations-test.sh:Core Profile Operations Tests"  
+        "$PROJECT_ROOT/tests/smoke.sh:Smoke Tests"
+        "$PROJECT_ROOT/tests/ui-functionality-test.sh:UI Functionality Tests"
+        "$PROJECT_ROOT/tests/list-command-integration-test.sh:List Command Tests"
+        "$PROJECT_ROOT/tests/core-operations-test.sh:Core Profile Operations Tests"
         "$PROJECT_ROOT/tests/error-handling-test.sh:Error Handling & Edge Case Tests"
         "$PROJECT_ROOT/tests/workflow-integration-test.sh:Workflow Integration Tests"
     )
