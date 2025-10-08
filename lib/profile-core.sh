@@ -674,18 +674,16 @@ switch_profile() {
         current_auth_type=$(detect_profile_auth_type "$current_profile" 2>/dev/null)
         
         if [[ "$current_auth_type" == "subscription" ]]; then
-            echo "Currently using subscription profile '$current_profile'"
-            echo ""
-            read -p "Save current subscription credentials before switching? (y/n): " -n 1 -r
-            echo ""
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                if save_current_credentials "$current_profile"; then
-                    echo "Credentials saved. Proceeding with switch..."
-                else
-                    echo "Failed to save credentials. Proceeding anyway..."
+            echo "Auto-saving current subscription credentials for profile '$current_profile'..."
+            if ! save_current_credentials "$current_profile"; then
+                echo "Failed to save credentials."
+                echo -n "Continue with profile switch anyway? [y/N]: "
+                read -r -n 1 response
+                echo ""
+                if [[ ! $response =~ ^[Yy]$ ]]; then
+                    echo "Profile switch cancelled. Current profile is '$current_profile'."
+                    return 1
                 fi
-            else
-                echo "Skipping credential save. Proceeding with switch..."
             fi
             echo ""
         fi
