@@ -75,7 +75,8 @@ When switching away from a subscription profile, the tool automatically saves cu
 
 **Behavior:**
 - Automatically saves subscription credentials when switching to different profile
-- Silent operation when credentials haven't changed
+- Silent operation - no confirmation prompts (changed in v1.1.0)
+- Only updates credentials if they have actually changed
 - Console API profiles don't need auto-save (static keys)
 
 ## Technical Implementation Details
@@ -142,6 +143,28 @@ The current auto-save approach was chosen because it's simpler and avoids issues
 - **System**: macOS keychain services
 - **Runtime**: Bash 4.0+, standard Unix utilities
 - **Installation**: Auto-installed via Homebrew formula
+- **Development**: `just` (task runner), `shellcheck`, `shfmt` (optional, for development)
+
+## Development Tools
+
+This project includes comprehensive development automation via [just](https://github.com/casey/just):
+
+### Quick Development Commands
+```bash
+just install-deps    # Install all development dependencies
+just lint            # Check code quality (shellcheck + shfmt)
+just format          # Fix formatting issues automatically
+just test            # Run comprehensive test suite
+just dev             # Quick cycle: format + test
+```
+
+### Available Development Tasks
+- **Code Quality**: `lint`, `lint-fix`, `format`, `shellcheck`, `shfmt-check`
+- **Testing**: `test`, `smoke` (quick validation)
+- **Workflows**: `dev`, `qa`, `pre-commit`, `ci`, `fix-all`
+- **Maintenance**: `clean`, `release`, `validate-env`
+
+See the [Development Guide](DEVELOPMENT.md) for complete details.
 
 ## Platform Requirements
 
@@ -169,8 +192,7 @@ claude-profile save personal
 # Enhanced workflow: Update current profile with fresh credentials
 claude-profile switch work
 # ... do some work, Claude may refresh tokens in background ...
-claude-profile save    # Updates 'work' profile with current credentials
-# Profile 'work' already exists. Overwrite existing credentials? [y/N]: y
+claude-profile save    # Updates 'work' profile with current credentials (silent if no changes)
 
 # List all profiles with current status
 claude-profile list

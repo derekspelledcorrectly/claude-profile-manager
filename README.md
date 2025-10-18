@@ -38,11 +38,36 @@ cp claude-profile-manager/bin/claude-profile /usr/local/bin/
 
 **Note**: Manual installation requires `jq` to be installed: `brew install jq`
 
+For development work, you can install all dependencies including development tools using: `just install-deps`
+
 ## Platform Requirements
 
 - **macOS**: Required (uses keychain services)
 - **Claude Code CLI**: Must be installed and configured
 - **jq**: JSON parsing tool (auto-installed via Homebrew)
+
+## Development
+
+This project uses [just](https://github.com/casey/just) for development task automation. After cloning the repository:
+
+```bash
+# Install development dependencies
+just install-deps
+
+# Run linting and formatting checks
+just lint
+
+# Fix formatting issues automatically
+just format
+
+# Run all tests
+just test
+
+# See all available commands
+just --list
+```
+
+For detailed development information, see the [Development Guide](DEVELOPMENT.md).
 
 ## Documentation
 
