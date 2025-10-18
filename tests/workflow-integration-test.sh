@@ -511,6 +511,138 @@ test_mixed_auth_types_workflow() {
     fi
 }
 
+# Test: Auto-save functionality during profile switching
+test_auto_save_functionality() {
+    echo "Testing auto-save functionality during profile switching..."
+
+    # Source the library
+    # shellcheck source=../lib/profile-core.sh
+    source "$PROJECT_ROOT/lib/profile-core.sh"
+
+    # Override functions with mocks
+    keychain_save_password() { mock_keychain_save_password "$@"; }
+    keychain_get_password() { mock_keychain_get_password "$@"; }
+    keychain_delete_password() { mock_keychain_delete_password "$@"; }
+    detect_auth_method() { echo "subscription"; }
+    get_claude_console_api_key() { mock_get_claude_console_api_key; }
+    save_claude_console_api_key() { return 0; }
+    backup_claude_subscription_credentials() {
+        mock_keychain_save_password "$1" "$(mock_get_claude_subscription_token)"
+    }
+    restore_claude_subscription_credentials() {
+        local creds
+        creds=$(mock_keychain_get_password "$1")
+        [[ -n "$creds" ]]
+    }
+    delete_claude_subscription_backup() { mock_keychain_delete_password "$1"; }
+
+    # Create test profiles (no overwrite prompts expected for new profiles)
+    save_profile "source-profile" >/dev/null 2>&1
+    save_profile "target-profile" >/dev/null 2>&1
+
+    # Set current profile to source-profile
+    echo "source-profile" > "$TEST_PROFILE_DIR/.current"
+
+    # Test 1: Auto-save success (should proceed silently)
+    save_current_credentials() { return 0; }  # Mock success
+    export -f save_current_credentials
+
+    local switch_output
+    switch_output=$(switch_profile "target-profile" 2>&1)
+    local switch_result=$?
+
+    if [[ $switch_result -eq 0 ]]; then
+        print_success "Step 1: Auto-save success allows switch to proceed"
+    else
+        print_error "Step 1: Auto-save success should allow switch"
+    fi
+
+    if echo "$switch_output" | grep -q "Auto-saving current subscription credentials"; then
+        print_success "Step 1a: Shows auto-save message"
+    else
+        print_error "Step 1a: Missing auto-save message"
+    fi
+
+    if ! echo "$switch_output" | grep -q "Continue with profile switch anyway"; then
+        print_success "Step 1b: No confirmation prompt on success"
+    else
+        print_error "Step 1b: Unexpected confirmation prompt on success"
+    fi
+
+    # Test 2: Auto-save failure with user choosing to continue
+    save_current_credentials() { return 1; }  # Mock failure
+    export -f save_current_credentials
+
+    # Reset current profile
+    echo "source-profile" > "$TEST_PROFILE_DIR/.current"
+
+    # Override confirm_continue_switch to return "yes" (continue)
+    confirm_continue_switch() {
+        echo "Continue with profile switch anyway? [y/N]: y"
+        return 0  # Yes, continue
+    }
+
+    switch_output=$(switch_profile "target-profile" 2>&1)
+    switch_result=$?
+
+    if [[ $switch_result -eq 0 ]]; then
+        print_success "Step 2: Auto-save failure with 'y' allows switch to proceed"
+    else
+        print_error "Step 2: Auto-save failure with 'y' should allow switch"
+    fi
+
+    if echo "$switch_output" | grep -q "Failed to save credentials"; then
+        print_success "Step 2a: Shows save failure message"
+    else
+        print_error "Step 2a: Missing save failure message"
+    fi
+
+    if echo "$switch_output" | grep -q "Continue with profile switch anyway"; then
+        print_success "Step 2b: Shows confirmation prompt on failure"
+    else
+        print_error "Step 2b: Missing confirmation prompt on failure"
+    fi
+
+    # Test 3: Auto-save failure with user choosing to cancel
+    echo "source-profile" > "$TEST_PROFILE_DIR/.current"
+
+    # Override confirm_continue_switch to return "no" (cancel)
+    confirm_continue_switch() {
+        echo "Continue with profile switch anyway? [y/N]: n"
+        return 1  # No, cancel
+    }
+
+    switch_output=$(switch_profile "target-profile" 2>&1)
+    switch_result=$?
+
+    if [[ $switch_result -eq 1 ]]; then
+        print_success "Step 3: Auto-save failure with 'n' cancels switch"
+    else
+        print_error "Step 3: Auto-save failure with 'n' should cancel switch"
+    fi
+
+    if echo "$switch_output" | grep -q "Profile switch cancelled"; then
+        print_success "Step 3a: Shows cancellation message"
+    else
+        print_error "Step 3a: Missing cancellation message"
+    fi
+
+    if echo "$switch_output" | grep -q "Current profile is 'source-profile'"; then
+        print_success "Step 3b: Shows current profile after cancellation"
+    else
+        print_error "Step 3b: Missing current profile information"
+    fi
+
+    # Test 4: Verify current profile is unchanged after cancellation
+    local current_profile
+    current_profile=$(get_current_profile)
+    if [[ "$current_profile" == "source-profile" ]]; then
+        print_success "Step 4: Current profile unchanged after cancellation"
+    else
+        print_error "Step 4: Current profile incorrectly changed after cancellation"
+    fi
+}
+
 # Print summary
 print_summary() {
     echo
@@ -547,7 +679,9 @@ main() {
     test_save_current_profile_workflow
     echo
     test_mixed_auth_types_workflow
-    
+    echo
+    test_auto_save_functionality
+
     print_summary
     exit $?
 }
