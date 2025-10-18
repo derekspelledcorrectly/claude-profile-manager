@@ -172,24 +172,81 @@ check_claude_authentication() {
 	local username
 	username=$(whoami)
 
-	# Check for console API key
+	# Check live credentials (what Claude Code is currently using)
+	echo
+	echo -e "${BLUE}Live Credentials (currently active):${NC}"
+
+	local has_live_console=0
+	local has_live_subscription=0
+
 	if security find-generic-password -a "$username" -s "Claude Code" >/dev/null 2>&1; then
-		print_success "Console API authentication configured"
+		print_success "Console API is active"
+		has_live_console=1
 	else
-		print_info "Console API authentication not found (optional)"
+		print_info "Console API not active"
 	fi
 
-	# Check for subscription credentials
 	if security find-generic-password -a "$username" -s "Claude Code-credentials" >/dev/null 2>&1; then
-		print_success "Subscription authentication configured"
+		print_success "Subscription is active"
+		has_live_subscription=1
 	else
-		print_info "Subscription authentication not found (optional)"
+		print_info "Subscription not active"
 	fi
 
-	if ! security find-generic-password -a "$username" -s "Claude Code" >/dev/null 2>&1 &&
-		! security find-generic-password -a "$username" -s "Claude Code-credentials" >/dev/null 2>&1; then
-		print_warning "No Claude authentication configured"
+	if [[ $has_live_console -eq 0 ]] && [[ $has_live_subscription -eq 0 ]]; then
+		print_warning "No live Claude authentication found"
 		echo "  Authenticate with Claude Code first: claude -c"
+	fi
+
+	# Check saved profile backups (what claude-profile has stored)
+	echo
+	echo -e "${BLUE}Saved Profiles (claude-profile backups):${NC}"
+
+	local profiles_dir="$HOME/.claude/profiles"
+	local profile_count=0
+	local ready_count=0
+
+	if [[ -d "$profiles_dir" ]]; then
+		# Get current active profile if it exists
+		local current_profile=""
+		if [[ -f "$profiles_dir/.current" ]]; then
+			current_profile=$(cat "$profiles_dir/.current" 2>/dev/null)
+		fi
+
+		# Check each profile JSON file
+		for profile_file in "$profiles_dir"/*.json; do
+			if [[ -f "$profile_file" ]]; then
+				local profile_name
+				profile_name=$(basename "$profile_file" .json)
+				local auth_method
+				auth_method=$(jq -r '.auth_method' "$profile_file" 2>/dev/null)
+
+				((profile_count++))
+
+				# Check if backup credentials exist in keychain
+				if security find-generic-password -a "$profile_name" -s "Claude Profile Manager" >/dev/null 2>&1; then
+					local indicator=""
+					if [[ "$profile_name" == "$current_profile" ]]; then
+						indicator=" (active)"
+					fi
+					print_success "$profile_name ($auth_method) - ready$indicator"
+					((ready_count++))
+				else
+					print_warning "$profile_name ($auth_method) - missing keychain backup"
+				fi
+			fi
+		done
+
+		if [[ $profile_count -eq 0 ]]; then
+			print_info "No saved profiles found"
+			echo "  Save a profile with: claude-profile save <name>"
+		else
+			echo
+			print_info "Total: $ready_count/$profile_count profiles ready for switching"
+		fi
+	else
+		print_info "No profiles directory found (~/.claude/profiles)"
+		echo "  Create first profile with: claude-profile save <name>"
 	fi
 }
 
