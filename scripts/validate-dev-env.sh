@@ -61,6 +61,12 @@ check_command() {
             "claude")
                 version=$(claude --version 2>/dev/null | head -1 || echo "installed")
                 ;;
+            "shellcheck")
+                version=$(shellcheck --version | grep "version:" | cut -d' ' -f2 2>/dev/null || echo "installed")
+                ;;
+            "shfmt")
+                version=$(shfmt --version 2>/dev/null || echo "installed")
+                ;;
         esac
         print_success "$description - $version"
         return 0
@@ -154,6 +160,7 @@ check_development_tools() {
     echo -e "${BLUE}Checking Development Tools...${NC}"
     
     check_command "shellcheck" "ShellCheck (bash linting)" "brew install shellcheck"
+    check_command "shfmt" "shfmt (shell formatter)" "brew install shfmt"
     check_command "git" "Git version control" "already installed on macOS"
     
 }
