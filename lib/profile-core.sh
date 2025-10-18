@@ -202,16 +202,10 @@ save_profile() {
             
             # Check if profile already exists and prompt for confirmation
             if profile_exists "$profile_name"; then
-                echo -n "Profile '$profile_name' already exists. Overwrite existing credentials? [y/N]: "
-                read -r -n 10 response
-                case "$response" in
-                    [Yy]|[Yy][Ee][Ss])
-                        ;;
-                    *)
-                        echo "Save cancelled."
-                        return 0
-                        ;;
-                esac
+                if ! confirm_profile_overwrite "$profile_name"; then
+                    echo "Save cancelled."
+                    return 0
+                fi
             fi
         else
             echo "Error: No profile name specified and no current profile active." >&2
@@ -680,10 +674,7 @@ switch_profile() {
             echo "Auto-saving current subscription credentials for profile '$current_profile'..."
             if ! save_current_credentials "$current_profile"; then
                 echo "Failed to save credentials."
-                echo -n "Continue with profile switch anyway? [y/N]: "
-                read -r -n 1 response
-                echo ""
-                if [[ ! $response =~ ^[Yy]$ ]]; then
+                if ! confirm_continue_switch; then
                     echo "Profile switch cancelled. Current profile is '$current_profile'."
                     return 1
                 fi
@@ -727,12 +718,10 @@ switch_profile() {
                 # Clear subscription credentials from keychain when switching to console
                 local username
                 username=$(whoami)
-                local cleanup_result
-                cleanup_result=$(security delete-generic-password -a "$username" -s "Claude Code-credentials" 2>&1)
-                local cleanup_exit_code=$?
-                
-                # Only warn on actual errors, not "item not found"
-                if [[ $cleanup_exit_code -ne 0 ]] && [[ "$cleanup_result" != *"could not be found"* ]]; then
+
+                # Use the keychain utility function instead of direct security call
+                if ! keychain_delete_password "$username" "Claude Code-credentials" 2>/dev/null; then
+                    # Only warn if there was an actual error (not just "not found")
                     echo "Warning: Failed to cleanup subscription credentials: Consider restarting" >&2
                 fi
                 
@@ -745,15 +734,13 @@ switch_profile() {
             ;;
         "subscription")
             if restore_claude_subscription_credentials "$profile_name"; then
-                # Clear console credentials when switching to subscription  
+                # Clear console credentials when switching to subscription
                 local username
                 username=$(whoami)
-                local cleanup_result
-                cleanup_result=$(security delete-generic-password -a "$username" -s "Claude Code" 2>&1)
-                local cleanup_exit_code=$?
-                
-                # Only warn on actual errors, not "item not found"
-                if [[ $cleanup_exit_code -ne 0 ]] && [[ "$cleanup_result" != *"could not be found"* ]]; then
+
+                # Use the keychain utility function instead of direct security call
+                if ! keychain_delete_password "$username" "Claude Code" 2>/dev/null; then
+                    # Only warn if there was an actual error (not just "not found")
                     echo "Warning: Failed to cleanup console credentials: Consider restarting" >&2
                 fi
                 
@@ -1080,5 +1067,23 @@ save_current_credentials() {
             return 1
             ;;
     esac
+}
+
+# Interactive prompt helpers - can be overridden in tests
+prompt_yes_no() {
+    local prompt="$1"
+    echo -n "$prompt"
+    read -r -n 1 response
+    echo ""
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
+confirm_profile_overwrite() {
+    local profile_name="$1"
+    prompt_yes_no "Profile '$profile_name' already exists. Overwrite existing credentials? [y/N]: "
+}
+
+confirm_continue_switch() {
+    prompt_yes_no "Continue with profile switch anyway? [y/N]: "
 }
 
