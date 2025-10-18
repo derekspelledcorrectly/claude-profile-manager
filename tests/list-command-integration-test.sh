@@ -82,7 +82,10 @@ test_list_output_structure() {
 	test_dir=$(setup_test_env)
 	create_mock_profiles "$test_dir"
 
-	# Mock keychain functions to avoid actual keychain access
+	# Source the library with our test environment first
+	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
+
+	# Mock keychain functions to avoid actual keychain access (after sourcing to override)
 	keychain_get_password() {
 		local profile_name="$1"
 		case "$profile_name" in
@@ -101,10 +104,6 @@ test_list_output_structure() {
 			;;
 		esac
 	}
-	export -f keychain_get_password
-
-	# Source the library with our test environment
-	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
 
 	# Capture the list output
 	local list_output
@@ -185,14 +184,13 @@ test_table_formatting() {
 	test_dir=$(setup_test_env)
 	create_mock_profiles "$test_dir"
 
-	# Mock keychain functions
+	# Source the library
+	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
+
+	# Mock keychain functions (after sourcing to override)
 	keychain_get_password() {
 		return 1 # No credentials found
 	}
-	export -f keychain_get_password
-
-	# Source the library
-	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
 
 	local list_output
 	list_output=$(PROFILE_SETTINGS_DIR="$test_dir" list_profiles 2>/dev/null)
@@ -234,14 +232,13 @@ test_current_profile_indicator_edge_cases() {
 	# Test with no current profile set
 	rm -f "$test_dir/.current"
 
-	# Mock keychain functions
+	# Source the library
+	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
+
+	# Mock keychain functions (after sourcing to override)
 	keychain_get_password() {
 		echo "mock-key"
 	}
-	export -f keychain_get_password
-
-	# Source the library
-	PROFILE_SETTINGS_DIR="$test_dir" source "$PROJECT_ROOT/lib/profile-core.sh"
 
 	local list_output
 	list_output=$(PROFILE_SETTINGS_DIR="$test_dir" list_profiles 2>/dev/null)
