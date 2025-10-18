@@ -5,22 +5,22 @@ LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
 # Check for required dependencies
 if ! command -v jq >/dev/null 2>&1; then
-    echo "Error: jq is required but not installed." >&2
-    echo "" >&2
-    echo "To install jq:" >&2
-    echo "  brew install jq" >&2
-    echo "" >&2
-    echo "Or reinstall claude-profile-manager to get dependencies:" >&2
-    echo "  brew uninstall claude-profile-manager" >&2
-    echo "  brew install claude-profile-manager" >&2
-    exit 1
+	echo "Error: jq is required but not installed." >&2
+	echo "" >&2
+	echo "To install jq:" >&2
+	echo "  brew install jq" >&2
+	echo "" >&2
+	echo "Or reinstall claude-profile-manager to get dependencies:" >&2
+	echo "  brew uninstall claude-profile-manager" >&2
+	echo "  brew install claude-profile-manager" >&2
+	exit 1
 fi
 
 # shellcheck source=lib/profile-core.sh
 source "$LIB_DIR/profile-core.sh"
 
 show_help() {
-    cat << EOF
+	cat <<EOF
 Claude Profile Manager - Manage Claude Code CLI authentication profiles
 
 Usage: claude-profile <command> [arguments]
@@ -84,44 +84,44 @@ EOF
 }
 
 main() {
-    local command="$1"
-    shift
-    
-    case "$command" in
-        "save"|"s")
-            save_profile "$@"
-            ;;
-        "list"|"ls")
-            list_profiles
-            ;;
-        "switch"|"sw")
-            switch_profile "$1"
-            ;;
-        "current"|"cur")
-            show_current_profile
-            ;;
-        "delete"|"del"|"rm")
-            delete_profile "$1"
-            ;;
-        "alias")
-            add_alias "$1" "$2"
-            ;;
-        "aliases")
-            list_aliases
-            ;;
-        "unalias")
-            remove_alias "$1"
-            ;;
-        "help"|"-h"|"--help"|"")
-            show_help
-            ;;
-        *)
-            # Default action: switch to profile
-            switch_profile "$command"
-            ;;
-    esac
+	local command="$1"
+	shift
+
+	case "$command" in
+	"save" | "s")
+		save_profile "$@"
+		;;
+	"list" | "ls")
+		list_profiles
+		;;
+	"switch" | "sw")
+		switch_profile "$1"
+		;;
+	"current" | "cur")
+		show_current_profile
+		;;
+	"delete" | "del" | "rm")
+		delete_profile "$1"
+		;;
+	"alias")
+		add_alias "$1" "$2"
+		;;
+	"aliases")
+		list_aliases
+		;;
+	"unalias")
+		remove_alias "$1"
+		;;
+	"help" | "-h" | "--help" | "")
+		show_help
+		;;
+	*)
+		# Default action: switch to profile
+		switch_profile "$command"
+		;;
+	esac
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
+	main "$@"
 fi

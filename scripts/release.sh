@@ -20,22 +20,22 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
+	echo -e "${GREEN}✓ $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}✗ $1${NC}"
+	echo -e "${RED}✗ $1${NC}"
 }
 
 print_info() {
-    echo -e "${YELLOW}→ $1${NC}"
+	echo -e "${YELLOW}→ $1${NC}"
 }
 
 # Check arguments
 if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <version>"
-    echo "Example: $0 1.2.0"
-    exit 1
+	echo "Usage: $0 <version>"
+	echo "Example: $0 1.2.0"
+	exit 1
 fi
 
 VERSION="$1"
@@ -43,14 +43,14 @@ VERSION="$1"
 # Enhanced input sanitization
 VERSION=$(printf '%s' "$VERSION" | tr -cd '0-9.')
 if [[ ${#VERSION} -gt 10 ]]; then
-    print_error "Version string too long"
-    exit 1
+	print_error "Version string too long"
+	exit 1
 fi
 
 # Validate version format (basic check)
 if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    print_error "Version must be in format X.Y.Z (e.g., 1.2.0)"
-    exit 1
+	print_error "Version must be in format X.Y.Z (e.g., 1.2.0)"
+	exit 1
 fi
 
 # Get project root
@@ -59,13 +59,13 @@ HOMEBREW_TAP_ROOT="$PROJECT_ROOT/../homebrew-claude-tools"
 
 # Verify we're in the right directories
 if [[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]]; then
-    print_error "Cannot find CLAUDE.md - are we in the right directory?"
-    exit 1
+	print_error "Cannot find CLAUDE.md - are we in the right directory?"
+	exit 1
 fi
 
 if [[ ! -f "$HOMEBREW_TAP_ROOT/Formula/claude-profile-manager.rb" ]]; then
-    print_error "Cannot find homebrew tap at $HOMEBREW_TAP_ROOT"
-    exit 1
+	print_error "Cannot find homebrew tap at $HOMEBREW_TAP_ROOT"
+	exit 1
 fi
 
 print_info "Starting release process for version $VERSION"
@@ -94,8 +94,8 @@ print_info "Creating GitHub release"
 
 # GitHub authentication validation
 if ! gh auth status >/dev/null 2>&1; then
-    print_error "GitHub CLI not authenticated. Run: gh auth login"
-    exit 1
+	print_error "GitHub CLI not authenticated. Run: gh auth login"
+	exit 1
 fi
 
 gh release create "v$VERSION" --title "v$VERSION" --notes "## Changes
@@ -113,8 +113,8 @@ SHA256=$(curl -sL "$GITHUB_URL" | shasum -a 256 | cut -d' ' -f1)
 
 # SHA256 format validation
 if ! [[ "$SHA256" =~ ^[a-f0-9]{64}$ ]]; then
-    print_error "Invalid SHA256 format: $SHA256"
-    exit 1
+	print_error "Invalid SHA256 format: $SHA256"
+	exit 1
 fi
 
 print_success "SHA256 calculated: $SHA256"
@@ -152,19 +152,19 @@ brew install derekspelledcorrectly/claude-tools/claude-profile-manager
 
 # Verify installation
 if claude-profile --help >/dev/null 2>&1; then
-    print_success "Installation verified"
+	print_success "Installation verified"
 else
-    print_error "Installation verification failed"
-    exit 1
+	print_error "Installation verification failed"
+	exit 1
 fi
 
 # Run tests
 print_info "Running test suite"
 if ./tests/run.sh >/dev/null 2>&1; then
-    print_success "All tests passed"
+	print_success "All tests passed"
 else
-    print_error "Some tests failed"
-    exit 1
+	print_error "Some tests failed"
+	exit 1
 fi
 
 print_success "Release $VERSION completed successfully!"
