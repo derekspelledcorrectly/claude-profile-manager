@@ -186,18 +186,18 @@ test_permission_errors() {
 	# Create a read-only directory to simulate permission errors
 	local readonly_dir="$TEST_PROFILE_DIR/readonly"
 	mkdir -p "$readonly_dir"
-	chmod 444 "$readonly_dir"
+	chmod 555 "$readonly_dir"  # Read and execute, but no write
 
 	# Try to create a profile file in read-only directory
 	local readonly_profile="$readonly_dir/test.json"
 
-	# This should fail gracefully
-	if ! echo '{"test": "data"}' >"$readonly_profile" 2>/dev/null; then
+	# This should fail gracefully - use a subshell to contain the error
+	if ! (echo '{"test": "data"}' >"$readonly_profile") 2>/dev/null; then
 		print_success "Read-only directory correctly prevents file creation"
 	else
 		print_error "Read-only directory should have prevented file creation"
 		# Cleanup if somehow it was created
-		rm -f "$readonly_profile"
+		rm -f "$readonly_profile" 2>/dev/null || true
 	fi
 
 	# Restore permissions for cleanup
@@ -355,7 +355,7 @@ test_resource_cleanup() {
 		# Check permissions
 		local perms
 		perms=$(stat -f "%p" "$temp_file" 2>/dev/null | tail -c 4)
-		if [[ "$perms" == "0600" ]]; then
+		if [[ "$perms" == "0600" || "$perms" == "600" ]]; then
 			print_success "Secure temp file has correct permissions"
 		else
 			print_error "Secure temp file has incorrect permissions: $perms"

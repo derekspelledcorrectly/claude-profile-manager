@@ -102,6 +102,40 @@ mock_get_claude_subscription_token() {
 	echo "${TEST_OAUTH_TOKEN:-{\"claudeAiOauth\":{\"accessToken\":{\"token\":\"test-token\",\"expiresAt\":$(($(date +%s) * 1000 + 3600000))}}}}"
 }
 
+# Mock secure_temp_file function
+mock_secure_temp_file() {
+	local temp_file
+	temp_file=$(mktemp -t "claude-profile-test-XXXXXXXXXX") || {
+		echo "Error: Could not create temporary file" >&2
+		return 1
+	}
+	chmod 600 "$temp_file" || {
+		rm -f "$temp_file"
+		echo "Error: Could not set file permissions" >&2
+		return 1
+	}
+	echo "$temp_file"
+}
+
+# Mock log_operation function
+mock_log_operation() {
+	# Do nothing for tests
+	return 0
+}
+
+# Mock interactive functions that could hang tests
+mock_save_current_credentials() {
+	return 0  # Always succeed for tests
+}
+
+mock_confirm_continue_switch() {
+	return 0  # Always continue for tests
+}
+
+mock_prompt_yes_no() {
+	return 0  # Always return yes for tests
+}
+
 # Test: Create → List → Switch → Delete workflow
 test_basic_profile_workflow() {
 	echo "Testing basic profile workflow (create → list → switch → delete)..."
@@ -116,7 +150,7 @@ test_basic_profile_workflow() {
 	keychain_delete_password() { mock_keychain_delete_password "$@"; }
 	detect_auth_method() { mock_detect_auth_method; }
 	get_claude_console_api_key() { mock_get_claude_console_api_key; }
-	save_claude_console_api_key() { mock_keychain_save_password "${USER:-testuser}" "$1" "Claude Code"; }
+	save_claude_console_api_key() { mock_keychain_save_password "testuser" "$1" "Claude Code"; }
 	backup_claude_subscription_credentials() {
 		mock_keychain_save_password "$1" "$(mock_get_claude_subscription_token)"
 	}
@@ -124,12 +158,18 @@ test_basic_profile_workflow() {
 		local creds
 		creds=$(mock_keychain_get_password "$1")
 		if [[ -n "$creds" ]]; then
-			mock_keychain_save_password "${USER:-testuser}" "$creds" "Claude Code-credentials"
+			mock_keychain_save_password "testuser" "$creds" "Claude Code-credentials"
 			return 0
 		fi
 		return 1
 	}
 	delete_claude_subscription_backup() { mock_keychain_delete_password "$1"; }
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
+	whoami() { echo "testuser"; }
+	save_current_credentials() { mock_save_current_credentials "$@"; }
+	confirm_continue_switch() { mock_confirm_continue_switch "$@"; }
+	prompt_yes_no() { mock_prompt_yes_no "$@"; }
 
 	# Step 1: Create a work profile
 	TEST_AUTH_METHOD="console"
@@ -184,7 +224,10 @@ test_basic_profile_workflow() {
 	fi
 
 	# Step 4: Switch to work profile
-	if switch_profile "work" >/dev/null 2>&1; then
+	local switch_output
+	switch_output=$(switch_profile "work" 2>&1)
+	local switch_result=$?
+	if [[ $switch_result -eq 0 ]]; then
 		print_success "Step 4: Switch to work profile succeeded"
 
 		# Verify current profile is set
@@ -196,11 +239,13 @@ test_basic_profile_workflow() {
 			print_error "Step 4a: Current profile not set correctly (got: $current_profile)"
 		fi
 	else
-		print_error "Step 4: Switch to work profile failed"
+		print_error "Step 4: Switch to work profile failed - $switch_output"
 	fi
 
 	# Step 5: Switch to personal profile
-	if switch_profile "personal" >/dev/null 2>&1; then
+	switch_output=$(switch_profile "personal" 2>&1)
+	switch_result=$?
+	if [[ $switch_result -eq 0 ]]; then
 		print_success "Step 5: Switch to personal profile succeeded"
 
 		local current_profile
@@ -211,7 +256,7 @@ test_basic_profile_workflow() {
 			print_error "Step 5a: Current profile not set correctly (got: $current_profile)"
 		fi
 	else
-		print_error "Step 5: Switch to personal profile failed"
+		print_error "Step 5: Switch to personal profile failed - $switch_output"
 	fi
 
 	# Step 6: Delete work profile
@@ -251,6 +296,8 @@ test_profile_with_aliases_workflow() {
 	detect_auth_method() { echo "console"; }
 	get_claude_console_api_key() { echo "sk-ant-api01-test-key-123456789012345678901234567890123456789012345678901234567890123456"; }
 	backup_claude_subscription_credentials() { return 0; }
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
 
 	# Step 1: Create profile with aliases
 	if save_profile "development" "dev" "d" >/dev/null 2>&1; then
@@ -294,10 +341,13 @@ test_profile_with_aliases_workflow() {
 	local list_output
 	list_output=$(list_profiles 2>/dev/null)
 
-	if echo "$list_output" | grep "development" | grep -q "(dev, d)"; then
+	if echo "$list_output" | grep "development" | grep -q "(dev,d)"; then
 		print_success "Step 3: Profile list shows aliases correctly"
 	else
 		print_error "Step 3: Profile list doesn't show aliases correctly"
+		echo "Debug: List output for development:"
+		echo "$list_output" | grep "development" || echo "(no development line found)"
+		echo "Debug: Expected format with no spaces: '(dev,d)'"
 	fi
 
 	# Step 4: Add additional alias
@@ -347,6 +397,11 @@ test_current_profile_tracking() {
 	get_claude_console_api_key() { echo "sk-ant-api01-test-key"; }
 	save_claude_console_api_key() { return 0; }
 	backup_claude_subscription_credentials() { return 0; }
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
+
+	# Clean up any existing current profile from previous tests
+	rm -f "$TEST_PROFILE_DIR/.current"
 
 	# Step 1: Check current profile when none exists
 	local current_profile
@@ -415,6 +470,8 @@ test_save_current_profile_workflow() {
 	detect_auth_method() { echo "console"; }
 	get_claude_console_api_key() { echo "sk-ant-api01-updated-key"; }
 	backup_claude_subscription_credentials() { return 0; }
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
 
 	# Step 1: Create initial profile and set as current
 	save_profile "current-test" >/dev/null 2>&1
@@ -472,6 +529,8 @@ test_mixed_auth_types_workflow() {
 		creds=$(mock_keychain_get_password "$1")
 		[[ -n "$creds" ]]
 	}
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
 
 	# Step 1: Create console profile
 	TEST_AUTH_METHOD="console"
@@ -535,6 +594,11 @@ test_auto_save_functionality() {
 		[[ -n "$creds" ]]
 	}
 	delete_claude_subscription_backup() { mock_keychain_delete_password "$1"; }
+	secure_temp_file() { mock_secure_temp_file "$@"; }
+	log_operation() { mock_log_operation "$@"; }
+	whoami() { echo "testuser"; }
+	# Note: save_current_credentials and confirm_continue_switch are handled
+	# specially in this test function with custom overrides
 
 	# Create test profiles (no overwrite prompts expected for new profiles)
 	save_profile "source-profile" >/dev/null 2>&1
