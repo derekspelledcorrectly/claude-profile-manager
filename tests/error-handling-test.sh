@@ -352,10 +352,10 @@ test_resource_cleanup() {
 	temp_file=$(secure_temp_file 2>/dev/null || echo "error")
 
 	if [[ "$temp_file" != "error" && -f "$temp_file" ]]; then
-		# Check permissions
+		# Check permissions (use %Lp for just the permission bits in octal)
 		local perms
-		perms=$(stat -f "%p" "$temp_file" 2>/dev/null | tail -c 4)
-		if [[ "$perms" == "0600" ]]; then
+		perms=$(stat -f "%Lp" "$temp_file" 2>/dev/null)
+		if [[ "$perms" == "600" ]]; then
 			print_success "Secure temp file has correct permissions"
 		else
 			print_error "Secure temp file has incorrect permissions: $perms"
