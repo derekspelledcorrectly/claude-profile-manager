@@ -72,7 +72,7 @@ print_info "Starting release process for version $VERSION"
 
 # Step 1: Update version in CLAUDE.md
 print_info "Updating version in CLAUDE.md"
-sed -i '' "s/\*\*Current Version\*\*: [0-9]\+\.[0-9]\+\.[0-9]\+ - .*/\*\*Current Version\*\*: $VERSION - Enhanced Release ✅/" "$PROJECT_ROOT/CLAUDE.md"
+sed -i '' -E "s/\*\*Current Version\*\*: [0-9]+\.[0-9]+\.[0-9]+ - .*/\*\*Current Version\*\*: $VERSION - Enhanced Release ✅/" "$PROJECT_ROOT/CLAUDE.md"
 print_success "Version updated in CLAUDE.md"
 
 # Step 2: Commit version change and create tag
