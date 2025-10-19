@@ -3,7 +3,7 @@
 ## Project Overview
 A robust authentication profile management system for Claude Code CLI that allows seamless switching between different Claude authentication methods.
 
-**Current Version**: 1.1.0 - Enhanced Release ✅
+**Current Version**: 1.2.0 - Enhanced Release ✅
 
 ## Key Features
 - **Profile Management Commands**: save, list, switch, delete, current, alias management
