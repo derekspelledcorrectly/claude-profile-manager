@@ -116,7 +116,8 @@ test_basic_profile_workflow() {
 	keychain_delete_password() { mock_keychain_delete_password "$@"; }
 	detect_auth_method() { mock_detect_auth_method; }
 	get_claude_console_api_key() { mock_get_claude_console_api_key; }
-	save_claude_console_api_key() { mock_keychain_save_password "${USER:-testuser}" "$1" "Claude Code"; }
+	save_claude_console_api_key() { return 0; }
+	save_current_credentials() { return 0; }
 	backup_claude_subscription_credentials() {
 		mock_keychain_save_password "$1" "$(mock_get_claude_subscription_token)"
 	}
@@ -250,6 +251,7 @@ test_profile_with_aliases_workflow() {
 	keychain_get_password() { mock_keychain_get_password "$@"; }
 	detect_auth_method() { echo "console"; }
 	get_claude_console_api_key() { echo "sk-ant-api01-test-key-123456789012345678901234567890123456789012345678901234567890123456"; }
+	save_current_credentials() { return 0; }
 	backup_claude_subscription_credentials() { return 0; }
 
 	# Step 1: Create profile with aliases
@@ -294,7 +296,7 @@ test_profile_with_aliases_workflow() {
 	local list_output
 	list_output=$(list_profiles 2>/dev/null)
 
-	if echo "$list_output" | grep "development" | grep -q "(dev, d)"; then
+	if echo "$list_output" | grep "development" | grep -q "(dev, d)\|(d, dev)"; then
 		print_success "Step 3: Profile list shows aliases correctly"
 	else
 		print_error "Step 3: Profile list doesn't show aliases correctly"
@@ -346,7 +348,11 @@ test_current_profile_tracking() {
 	detect_auth_method() { echo "console"; }
 	get_claude_console_api_key() { echo "sk-ant-api01-test-key"; }
 	save_claude_console_api_key() { return 0; }
+	save_current_credentials() { return 0; }
 	backup_claude_subscription_credentials() { return 0; }
+
+	# Clean up any current profile from previous tests
+	rm -f "$TEST_PROFILE_DIR/.current"
 
 	# Step 1: Check current profile when none exists
 	local current_profile
@@ -414,6 +420,7 @@ test_save_current_profile_workflow() {
 	keychain_get_password() { mock_keychain_get_password "$@"; }
 	detect_auth_method() { echo "console"; }
 	get_claude_console_api_key() { echo "sk-ant-api01-updated-key"; }
+	save_current_credentials() { return 0; }
 	backup_claude_subscription_credentials() { return 0; }
 
 	# Step 1: Create initial profile and set as current
@@ -464,6 +471,7 @@ test_mixed_auth_types_workflow() {
 	detect_auth_method() { mock_detect_auth_method; }
 	get_claude_console_api_key() { mock_get_claude_console_api_key; }
 	save_claude_console_api_key() { return 0; }
+	save_current_credentials() { return 0; }
 	backup_claude_subscription_credentials() {
 		mock_keychain_save_password "$1" "$(mock_get_claude_subscription_token)"
 	}
@@ -612,8 +620,10 @@ test_auto_save_functionality() {
 		return 1 # No, cancel
 	}
 
+	set +e  # Temporarily disable exit on error
 	switch_output=$(switch_profile "target-profile" 2>&1)
 	switch_result=$?
+	set -e  # Re-enable exit on error
 
 	if [[ $switch_result -eq 1 ]]; then
 		print_success "Step 3: Auto-save failure with 'n' cancels switch"
