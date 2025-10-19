@@ -542,10 +542,10 @@ get_profile_aliases() {
 
 	if [[ ${#aliases[@]} -gt 0 ]]; then
 		local alias_string
-		alias_string=$(
-			IFS=', '
-			echo "${aliases[*]}"
-		)
+		# Use printf to join with comma-space (IFS only uses first char)
+		alias_string=$(printf "%s, " "${aliases[@]}")
+		# Remove trailing comma and space
+		alias_string="${alias_string%, }"
 		echo " ($alias_string)"
 	fi
 }
